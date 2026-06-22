@@ -937,9 +937,22 @@ corner(minimize, 999)
 
             headerFrame.MouseButton1Click:Connect(function()
                 section.Expanded = not section.Expanded
-                arrow.Text = section.Expanded and "▼" or "▶"
+
+                -- Rotate arrow: 0 = expanded, -90 = collapsed
+                tween(arrow, {Rotation = section.Expanded and 0 or -90}, 0.2)
+
                 for _, item in ipairs(section.Items) do
-                    item.Visible = section.Expanded
+                    if section.Expanded then
+                        item.Visible = true
+                        tween(item, {BackgroundTransparency = 0.04}, 0.15)
+                    else
+                        tween(item, {BackgroundTransparency = 1}, 0.12)
+                        task.delay(0.13, function()
+                            if not section.Expanded then
+                                item.Visible = false
+                            end
+                        end)
+                    end
                 end
             end)
 
