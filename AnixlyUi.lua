@@ -1,6 +1,7 @@
 --// Anixly UI Library
 --// Version: 1.1.0 (Enhanced Edition)
 --// Improvements: smoother animations, hover glow on tabs, active indicator bar,
+--//   section collapse animation, notification queue, new NEON & OCEAN themes
 
 local AnixlyUI = {}
 AnixlyUI.__index = AnixlyUI
@@ -881,7 +882,7 @@ corner(minimize, 999)
 
         tabBtn.MouseButton1Click:Connect(activate)
 
-        function tab:AddSection(title)
+        function tab:AddSection(title, iconId)
             local section = {}
             section.Title = title
             section.Items = {}
@@ -899,24 +900,40 @@ corner(minimize, 999)
             corner(headerFrame, 13)
             stroke(headerFrame, theme.accent, 1, 0.65)
 
+            -- Optional icon
+            local textOffsetX = 14
+            if iconId and iconId ~= "" then
+                local sectionIcon = Instance.new("ImageLabel")
+                sectionIcon.Size = UDim2.new(0, 20, 0, 20)
+                sectionIcon.Position = UDim2.new(0, 12, 0.5, -10)
+                sectionIcon.BackgroundTransparency = 1
+                sectionIcon.Image = "rbxassetid://" .. tostring(iconId):gsub("rbxassetid://", "")
+                sectionIcon.ImageColor3 = theme.accent
+                sectionIcon.ScaleType = Enum.ScaleType.Fit
+                sectionIcon.ZIndex = headerFrame.ZIndex + 1
+                sectionIcon.Parent = headerFrame
+                textOffsetX = 40
+            end
+
             makeText(headerFrame, {
                 Text = title,
                 TextColor3 = theme.text,
                 Font = Enum.Font.GothamBlack,
                 TextSize = IsMobile and 12 or 13,
-                Size = UDim2.new(1, -60, 1, 0),
-                Position = UDim2.new(0, 14, 0, 0)
+                Size = UDim2.new(1, -(textOffsetX + 46), 1, 0),
+                Position = UDim2.new(0, textOffsetX, 0, 0)
             })
 
-            local arrow = makeText(headerFrame, {
-                Text = "▼",
-                TextColor3 = theme.accent,
-                Font = Enum.Font.GothamBlack,
-                TextSize = 18,
-                Size = UDim2.new(0, 30, 1, 0),
-                Position = UDim2.new(1, -38, 0, 0),
-                TextXAlignment = Enum.TextXAlignment.Center
-            })
+            -- Arrow icon (ImageLabel instead of text)
+            local arrow = Instance.new("ImageLabel")
+            arrow.Size = UDim2.new(0, 16, 0, 16)
+            arrow.Position = UDim2.new(1, -28, 0.5, -8)
+            arrow.BackgroundTransparency = 1
+            arrow.Image = "rbxassetid://6034818372"
+            arrow.ImageColor3 = theme.accent
+            arrow.ScaleType = Enum.ScaleType.Fit
+            arrow.ZIndex = headerFrame.ZIndex + 1
+            arrow.Parent = headerFrame
 
             headerFrame.MouseButton1Click:Connect(function()
                 section.Expanded = not section.Expanded
@@ -1007,31 +1024,50 @@ corner(minimize, 999)
                     TextColor3 = theme.text,
                     Font = Enum.Font.GothamBold,
                     TextSize = IsMobile and 12 or 13,
-                    Size = UDim2.new(1, -75, 1, 0),
+                    Size = UDim2.new(1, -80, 1, 0),
                     Position = UDim2.new(0, 12, 0, 0)
                 })
 
                 local state = cfg.Default or false
+
+                -- Track (pill background)
                 local track = Instance.new("Frame")
-                track.Size = UDim2.new(0, 48, 0, 24)
-                track.Position = UDim2.new(1, -60, 0.5, -12)
-                track.BackgroundColor3 = state and theme.success or theme.danger
+                track.Size = UDim2.new(0, 52, 0, 28)
+                track.Position = UDim2.new(1, -64, 0.5, -14)
+                track.BackgroundColor3 = state and theme.accent or theme.card2
                 track.BorderSizePixel = 0
                 track.Parent = frame
                 corner(track, 999)
 
+                -- Glow stroke on track (visible when ON)
+                local trackStroke = Instance.new("UIStroke")
+                trackStroke.Color = theme.accent
+                trackStroke.Thickness = 1.5
+                trackStroke.Transparency = state and 0.3 or 0.9
+                trackStroke.Parent = track
+
+                -- Knob
                 local knob = Instance.new("Frame")
-                knob.Size = UDim2.new(0, 18, 0, 18)
-                knob.Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+                knob.Size = UDim2.new(0, 22, 0, 22)
+                knob.Position = state and UDim2.new(1, -25, 0.5, -11) or UDim2.new(0, 3, 0.5, -11)
                 knob.BackgroundColor3 = Color3.new(1, 1, 1)
                 knob.BorderSizePixel = 0
+                knob.ZIndex = frame.ZIndex + 1
                 knob.Parent = track
                 corner(knob, 999)
+
+                -- Subtle shadow on knob
+                local knobStroke = Instance.new("UIStroke")
+                knobStroke.Color = Color3.fromRGB(0, 0, 0)
+                knobStroke.Thickness = 1
+                knobStroke.Transparency = 0.7
+                knobStroke.Parent = knob
 
                 local btn = Instance.new("TextButton")
                 btn.Size = UDim2.new(1, 0, 1, 0)
                 btn.BackgroundTransparency = 1
                 btn.Text = ""
+                btn.ZIndex = frame.ZIndex + 2
                 btn.Parent = frame
 
                 local key = "Toggle_" .. tostring(cfg.Text or "Toggle")
@@ -1040,13 +1076,39 @@ corner(minimize, 999)
                 local function set(value)
                     state = value
                     window.ConfigData[key] = state
-                    tween(track, {BackgroundColor3 = state and theme.success or theme.danger}, 0.18)
-                    tween(knob, {Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)}, 0.18)
+
+                    if state then
+                        -- ON: accent color + knob slides right + glow
+                        tween(track, {BackgroundColor3 = theme.accent}, 0.2)
+                        tweenElastic(knob, {Position = UDim2.new(1, -25, 0.5, -11)}, 0.28)
+                        tween(knob, {Size = UDim2.new(0, 22, 0, 22)}, 0.08)
+                        trackStroke.Transparency = 0.3
+                    else
+                        -- OFF: dark + knob slides left
+                        tween(track, {BackgroundColor3 = theme.card2}, 0.2)
+                        tweenElastic(knob, {Position = UDim2.new(0, 3, 0.5, -11)}, 0.28)
+                        trackStroke.Transparency = 0.9
+                    end
+
                     if cfg.Callback then cfg.Callback(state) end
                 end
 
+                -- Press: knob squishes wide momentarily
+                btn.MouseButton1Down:Connect(function()
+                    tween(knob, {Size = UDim2.new(0, 26, 0, 20)}, 0.08)
+                end)
+
                 btn.MouseButton1Click:Connect(function()
+                    tween(knob, {Size = UDim2.new(0, 22, 0, 22)}, 0.08)
                     set(not state)
+                end)
+
+                -- Hover: slight frame highlight
+                btn.MouseEnter:Connect(function()
+                    tween(frame, {BackgroundColor3 = theme.card2}, 0.14)
+                end)
+                btn.MouseLeave:Connect(function()
+                    tween(frame, {BackgroundColor3 = theme.card}, 0.14)
                 end)
 
                 return {
