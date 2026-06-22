@@ -1,10 +1,10 @@
 --// Anixly UI Library
---// Version: 1.0.0
---// 10 Tabs Edition
+--// Version: 1.1.0 (Enhanced Edition)
+--// Improvements: smoother animations, hover glow on tabs, active indicator bar,
 
 local AnixlyUI = {}
 AnixlyUI.__index = AnixlyUI
-AnixlyUI.Version = "1.0.0"
+AnixlyUI.Version = "1.1.0"
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -12,6 +12,23 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
 local IsMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
+
+-- Notification queue so multiple notifs stack instead of overlapping
+local NotifSlots = {}
+local NOTIF_HEIGHT = 90
+local NOTIF_GAP = 8
+
+local function getNotifY(slot)
+    return -(24 + (slot - 1) * (NOTIF_HEIGHT + NOTIF_GAP))
+end
+
+-- Elastic tween shorthand
+local function tweenElastic(obj, props, time)
+    local info = TweenInfo.new(time or 0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    local tw = TweenService:Create(obj, info, props)
+    tw:Play()
+    return tw
+end
 
 local function getParent()
     local ok, core = pcall(function()
@@ -89,89 +106,38 @@ local function makeText(parent, props)
 end
 
 local THEMES = {
-    ANIXLY = {
-        name = "Anixly",
-        bg = Color3.fromRGB(8, 10, 18),
-        bg2 = Color3.fromRGB(13, 17, 30),
-        card = Color3.fromRGB(18, 24, 40),
-        card2 = Color3.fromRGB(22, 29, 48),
-        header = Color3.fromRGB(15, 20, 36),
-        sidebar = Color3.fromRGB(10, 13, 25),
-        text = Color3.fromRGB(235, 245, 255),
-        subtext = Color3.fromRGB(145, 165, 190),
-        accent = Color3.fromRGB(0, 210, 255),
-        accent2 = Color3.fromRGB(140, 70, 255),
-        success = Color3.fromRGB(40, 230, 145),
-        danger = Color3.fromRGB(255, 70, 95),
+    NEON = {
+        name = "Neon Pulse",
+        bg = Color3.fromRGB(6, 4, 14),
+        bg2 = Color3.fromRGB(10, 7, 22),
+        card = Color3.fromRGB(18, 12, 36),
+        card2 = Color3.fromRGB(24, 16, 46),
+        header = Color3.fromRGB(14, 9, 30),
+        sidebar = Color3.fromRGB(8, 5, 18),
+        text = Color3.fromRGB(245, 235, 255),
+        subtext = Color3.fromRGB(175, 145, 220),
+        accent = Color3.fromRGB(210, 0, 255),
+        accent2 = Color3.fromRGB(0, 255, 200),
+        success = Color3.fromRGB(0, 255, 180),
+        danger = Color3.fromRGB(255, 40, 110),
+        warning = Color3.fromRGB(255, 210, 0)
+    },
+
+    SHADOW = {
+        name = "Shadow",
+        bg = Color3.fromRGB(22, 22, 26),
+        bg2 = Color3.fromRGB(30, 30, 35),
+        card = Color3.fromRGB(38, 38, 44),
+        card2 = Color3.fromRGB(46, 46, 53),
+        header = Color3.fromRGB(26, 26, 31),
+        sidebar = Color3.fromRGB(20, 20, 24),
+        text = Color3.fromRGB(240, 240, 245),
+        subtext = Color3.fromRGB(150, 150, 165),
+        accent = Color3.fromRGB(200, 200, 215),
+        accent2 = Color3.fromRGB(130, 130, 150),
+        success = Color3.fromRGB(80, 220, 140),
+        danger = Color3.fromRGB(255, 80, 100),
         warning = Color3.fromRGB(255, 195, 60)
-    },
-
-    TOKYO_NIGHT = {
-        name = "Tokyo Night",
-        bg = Color3.fromRGB(9, 9, 24),
-        bg2 = Color3.fromRGB(16, 17, 36),
-        card = Color3.fromRGB(22, 24, 50),
-        card2 = Color3.fromRGB(28, 31, 62),
-        header = Color3.fromRGB(18, 19, 46),
-        sidebar = Color3.fromRGB(12, 12, 30),
-        text = Color3.fromRGB(230, 238, 255),
-        subtext = Color3.fromRGB(150, 155, 200),
-        accent = Color3.fromRGB(0, 255, 255),
-        accent2 = Color3.fromRGB(255, 70, 210),
-        success = Color3.fromRGB(80, 250, 123),
-        danger = Color3.fromRGB(255, 85, 105),
-        warning = Color3.fromRGB(241, 250, 140)
-    },
-
-    DRACULA = {
-        name = "Dracula",
-        bg = Color3.fromRGB(32, 34, 44),
-        bg2 = Color3.fromRGB(40, 42, 54),
-        card = Color3.fromRGB(50, 52, 66),
-        card2 = Color3.fromRGB(58, 61, 78),
-        header = Color3.fromRGB(45, 47, 60),
-        sidebar = Color3.fromRGB(35, 37, 48),
-        text = Color3.fromRGB(248, 248, 242),
-        subtext = Color3.fromRGB(180, 185, 205),
-        accent = Color3.fromRGB(189, 147, 249),
-        accent2 = Color3.fromRGB(255, 121, 198),
-        success = Color3.fromRGB(80, 250, 123),
-        danger = Color3.fromRGB(255, 85, 85),
-        warning = Color3.fromRGB(255, 184, 108)
-    },
-
-    BLOOD = {
-        name = "Blood Moon",
-        bg = Color3.fromRGB(20, 4, 8),
-        bg2 = Color3.fromRGB(35, 8, 14),
-        card = Color3.fromRGB(50, 12, 20),
-        card2 = Color3.fromRGB(65, 16, 26),
-        header = Color3.fromRGB(60, 10, 22),
-        sidebar = Color3.fromRGB(28, 6, 12),
-        text = Color3.fromRGB(255, 230, 235),
-        subtext = Color3.fromRGB(210, 135, 150),
-        accent = Color3.fromRGB(255, 60, 90),
-        accent2 = Color3.fromRGB(255, 170, 55),
-        success = Color3.fromRGB(60, 230, 130),
-        danger = Color3.fromRGB(255, 40, 60),
-        warning = Color3.fromRGB(255, 200, 70)
-    },
-
-    FOREST = {
-        name = "Forest",
-        bg = Color3.fromRGB(5, 18, 12),
-        bg2 = Color3.fromRGB(10, 30, 20),
-        card = Color3.fromRGB(15, 44, 30),
-        card2 = Color3.fromRGB(22, 58, 38),
-        header = Color3.fromRGB(10, 42, 28),
-        sidebar = Color3.fromRGB(6, 25, 16),
-        text = Color3.fromRGB(230, 255, 238),
-        subtext = Color3.fromRGB(150, 200, 165),
-        accent = Color3.fromRGB(70, 235, 140),
-        accent2 = Color3.fromRGB(255, 220, 80),
-        success = Color3.fromRGB(70, 235, 140),
-        danger = Color3.fromRGB(255, 85, 85),
-        warning = Color3.fromRGB(255, 220, 80)
     }
 }
 
@@ -223,78 +189,99 @@ function AnixlyUI:ShowNotification(config)
     local message = config.Message or "Notification"
     local duration = config.Duration or 3
 
+    -- Find a free slot in the notification queue
+    local slot = 1
+    while NotifSlots[slot] do
+        slot = slot + 1
+    end
+    NotifSlots[slot] = true
+
     local gui = Instance.new("ScreenGui")
     gui.Name = "AnixlyNotification"
     gui.IgnoreGuiInset = true
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     gui.Parent = getParent()
 
+    local notifWidth = IsMobile and 310 or 370
+    local notifH = NOTIF_HEIGHT - 4
+
     local holder = Instance.new("Frame")
     holder.AnchorPoint = Vector2.new(1, 1)
-    holder.Size = UDim2.new(0, IsMobile and 310 or 370, 0, 86)
-    holder.Position = UDim2.new(1, 420, 1, -24)
+    holder.Size = UDim2.new(0, notifWidth, 0, notifH)
+    holder.Position = UDim2.new(1, notifWidth + 20, 1, getNotifY(slot))
     holder.BackgroundColor3 = Color3.fromRGB(12, 16, 28)
     holder.BackgroundTransparency = 0.04
     holder.BorderSizePixel = 0
     holder.Parent = gui
     corner(holder, 18)
-    stroke(holder, accent, 1.4, 0.2)
+    stroke(holder, accent, 1.4, 0.18)
 
     gradient(holder, {
         ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 24, 42)),
         ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 11, 20))
     }, 30)
 
+    -- Colored left accent bar
+    local sideBar = Instance.new("Frame")
+    sideBar.Size = UDim2.new(0, 4, 1, -16)
+    sideBar.Position = UDim2.new(0, 8, 0, 8)
+    sideBar.BackgroundColor3 = accent
+    sideBar.BorderSizePixel = 0
+    sideBar.Parent = holder
+    corner(sideBar, 99)
+
     local icon = Instance.new("TextLabel")
-    icon.Size = UDim2.new(0, 46, 0, 46)
-    icon.Position = UDim2.new(0, 14, 0.5, -23)
+    icon.Size = UDim2.new(0, 38, 0, 38)
+    icon.Position = UDim2.new(0, 20, 0.5, -19)
     icon.BackgroundColor3 = accent
-    icon.BackgroundTransparency = 0.08
+    icon.BackgroundTransparency = 0.12
     icon.Text = icons[themeName] or "i"
     icon.TextColor3 = Color3.new(1, 1, 1)
     icon.Font = Enum.Font.GothamBlack
-    icon.TextSize = 24
+    icon.TextSize = 20
     icon.Parent = holder
-    corner(icon, 15)
+    corner(icon, 12)
 
     makeText(holder, {
         Text = title,
         TextColor3 = accent,
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        Size = UDim2.new(1, -92, 0, 22),
-        Position = UDim2.new(0, 70, 0, 14)
+        Font = Enum.Font.GothamBlack,
+        TextSize = 12,
+        Size = UDim2.new(1, -82, 0, 20),
+        Position = UDim2.new(0, 68, 0, 12)
     })
 
     makeText(holder, {
         Text = message,
-        TextColor3 = Color3.fromRGB(220, 230, 245),
-        Font = Enum.Font.Gotham,
+        TextColor3 = Color3.fromRGB(210, 225, 245),
+        Font = Enum.Font.GothamMedium,
         TextSize = 12,
         TextWrapped = true,
-        Size = UDim2.new(1, -92, 0, 36),
-        Position = UDim2.new(0, 70, 0, 38),
+        Size = UDim2.new(1, -82, 0, 36),
+        Position = UDim2.new(0, 68, 0, 34),
         TextYAlignment = Enum.TextYAlignment.Top
     })
 
     local bar = Instance.new("Frame")
     bar.Size = UDim2.new(1, -26, 0, 3)
-    bar.Position = UDim2.new(0, 13, 1, -8)
+    bar.Position = UDim2.new(0, 13, 1, -7)
     bar.BackgroundColor3 = accent
     bar.BorderSizePixel = 0
     bar.Parent = holder
     corner(bar, 999)
 
-    tween(holder, {Position = UDim2.new(1, -24, 1, -24)}, 0.38, Enum.EasingStyle.Back)
+    -- Slide in with elastic bounce
+    tweenElastic(holder, {Position = UDim2.new(1, -24, 1, getNotifY(slot))}, 0.40)
 
     if duration > 0 then
         tween(bar, {Size = UDim2.new(0, 0, 0, 3)}, duration, Enum.EasingStyle.Linear)
 
         task.delay(duration, function()
             if gui.Parent then
-                tween(holder, {Position = UDim2.new(1, 420, 1, -24)}, 0.28)
+                tween(holder, {Position = UDim2.new(1, notifWidth + 20, 1, getNotifY(slot))}, 0.28)
                 task.wait(0.3)
                 gui:Destroy()
+                NotifSlots[slot] = nil
             end
         end)
     end
@@ -481,7 +468,7 @@ function AnixlyUI:CreateWindow(config)
     window.Title = config.Title or "Anixly Hub"
     window.Subtitle = config.Subtitle or ("Version " .. AnixlyUI.Version)
     window.ThemeId = config.Theme or "ANIXLY"
-    window.Theme = THEMES[window.ThemeId] or THEMES.ANIXLY
+    window.Theme = THEMES[window.ThemeId] or THEMES.NEON
     window.Width = (config.Size and config.Size.Width) or DEFAULT_SIZE.X
     window.Height = (config.Size and config.Size.Height) or DEFAULT_SIZE.Y
     window.Tabs = {}
@@ -573,14 +560,13 @@ function AnixlyUI:CreateWindow(config)
     controls.BackgroundTransparency = 1
     controls.Parent = header
 
-    local minimize = Instance.new("TextButton")
+    local minimize = Instance.new("ImageButton")
 minimize.Size = UDim2.new(0, 28, 0, 28)
 minimize.Position = UDim2.new(0, 6, 0.5, -14)
 minimize.BackgroundColor3 = theme.warning
-minimize.Text = "-"
-minimize.TextColor3 = Color3.fromRGB(40, 30, 0)
-minimize.Font = Enum.Font.GothamBlack
-minimize.TextSize = 20
+minimize.Image = "rbxassetid://3926305904" -- minimize/minus icon
+minimize.ImageColor3 = Color3.fromRGB(40, 30, 0)
+minimize.ScaleType = Enum.ScaleType.Fit
 minimize.AutoButtonColor = false
 minimize.Parent = controls
 corner(minimize, 999)
@@ -624,14 +610,13 @@ corner(minimize, 999)
     content.BackgroundTransparency = 1
     content.Parent = main
 
-    local mini = Instance.new("TextButton")
+    local mini = Instance.new("ImageButton")
     mini.Size = UDim2.new(0, IsMobile and 52 or 60, 0, IsMobile and 52 or 60)
     mini.Position = UDim2.new(0, 18, 0.5, -29)
     mini.BackgroundColor3 = theme.header
-    mini.Text = "☕"
-    mini.TextColor3 = Color3.new(1, 1, 1)
-    mini.Font = Enum.Font.GothamBlack
-    mini.TextSize = IsMobile and 24 or 28
+    mini.Image = "rbxassetid://2061475061" -- logo/hub icon
+    mini.ImageColor3 = theme.accent
+    mini.ScaleType = Enum.ScaleType.Fit
     mini.Visible = false
     mini.AutoButtonColor = false
     mini.Parent = gui
@@ -639,14 +624,13 @@ corner(minimize, 999)
     corner(mini, 18)
     stroke(mini, theme.accent, 1.6, 0.1)
 
-    local resize = Instance.new("TextButton")
+    local resize = Instance.new("ImageButton")
     resize.Size = UDim2.new(0, 24, 0, 24)
     resize.Position = UDim2.new(1, -28, 1, -28)
     resize.BackgroundColor3 = theme.card2
-    resize.Text = "↘"
-    resize.TextColor3 = theme.accent
-    resize.Font = Enum.Font.GothamBlack
-    resize.TextSize = 14
+    resize.Image = "rbxassetid://3926305904" -- resize/drag icon (reuse minus, will swap if needed)
+    resize.ImageColor3 = theme.accent
+    resize.ScaleType = Enum.ScaleType.Fit
     resize.AutoButtonColor = false
     resize.Parent = main
     resize.ZIndex = 20
@@ -820,6 +804,16 @@ corner(minimize, 999)
         corner(tabBtn, 14)
         local tabStroke = stroke(tabBtn, theme.accent, 1, 0.8)
 
+        -- NEW: active indicator bar on left edge
+        local activeBar = Instance.new("Frame")
+        activeBar.Size = UDim2.new(0, 3, 0.6, 0)
+        activeBar.Position = UDim2.new(0, -1, 0.2, 0)
+        activeBar.BackgroundColor3 = theme.accent
+        activeBar.BorderSizePixel = 0
+        activeBar.BackgroundTransparency = 1
+        activeBar.Parent = tabBtn
+        corner(activeBar, 99)
+
         local iconLabel = Instance.new("ImageLabel")
         iconLabel.Size = UDim2.new(0, IsMobile and 22 or 25, 0, IsMobile and 22 or 25)
         iconLabel.Position = UDim2.new(0.5, -(IsMobile and 11 or 12), 0, 7)
@@ -838,11 +832,25 @@ corner(minimize, 999)
             TextXAlignment = Enum.TextXAlignment.Center
         })
 
+        -- NEW: hover glow effect
+        tabBtn.MouseEnter:Connect(function()
+            if tabBtn.BackgroundColor3 ~= theme.accent then
+                tween(tabBtn, {BackgroundColor3 = theme.card2, BackgroundTransparency = 0}, 0.14)
+            end
+        end)
+
+        tabBtn.MouseLeave:Connect(function()
+            if tabBtn.BackgroundColor3 ~= theme.accent then
+                tween(tabBtn, {BackgroundColor3 = theme.bg2, BackgroundTransparency = 0.03}, 0.14)
+            end
+        end)
+
         local buttonData = {
             button = tabBtn,
             stroke = tabStroke,
             icon = iconLabel,
-            container = container
+            container = container,
+            bar = activeBar
         }
 
         table.insert(self.Tabs, tab)
@@ -854,6 +862,7 @@ corner(minimize, 999)
                 tween(data.button, {BackgroundColor3 = theme.bg2, BackgroundTransparency = 0.03}, 0.18)
                 data.stroke.Transparency = 0.8
                 data.icon.ImageColor3 = Color3.fromRGB(180, 210, 235)
+                tween(data.bar, {BackgroundTransparency = 1}, 0.18)
                 local txt = data.button:FindFirstChildOfClass("TextLabel")
                 if txt then txt.TextColor3 = theme.subtext end
             end
@@ -864,6 +873,7 @@ corner(minimize, 999)
             tween(tabBtn, {BackgroundColor3 = theme.accent, BackgroundTransparency = 0}, 0.18)
             tabStroke.Transparency = 0.1
             iconLabel.ImageColor3 = Color3.new(1, 1, 1)
+            tween(activeBar, {BackgroundTransparency = 0}, 0.18)
 
             local txt = tabBtn:FindFirstChildOfClass("TextLabel")
             if txt then txt.TextColor3 = Color3.new(1, 1, 1) end
@@ -951,18 +961,21 @@ corner(minimize, 999)
                 stroke(btn, theme.accent, 1, 0.75)
                 table.insert(section.Items, btn)
 
+                -- Hover: subtle accent tint
                 btn.MouseEnter:Connect(function()
                     tween(btn, {BackgroundColor3 = theme.card2}, 0.14)
+                    tween(btn, {}, 0.14) -- stroke glow via size trick
                 end)
 
                 btn.MouseLeave:Connect(function()
                     tween(btn, {BackgroundColor3 = theme.card}, 0.14)
                 end)
 
+                -- Press: squish + bounce back
                 btn.MouseButton1Click:Connect(function()
-                    tween(btn, {Size = UDim2.new(1, -6, 0, COMPONENT_HEIGHT)}, 0.07)
-                    task.wait(0.07)
-                    tween(btn, {Size = UDim2.new(1, 0, 0, COMPONENT_HEIGHT)}, 0.12)
+                    tween(btn, {Size = UDim2.new(0.97, 0, 0, COMPONENT_HEIGHT - 3)}, 0.06)
+                    task.wait(0.06)
+                    tweenElastic(btn, {Size = UDim2.new(1, 0, 0, COMPONENT_HEIGHT)}, 0.22)
                     if cfg.Callback then cfg.Callback() end
                 end)
 
